@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's the Bracha?</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="180x180" href="apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#faf6ee;
+    --card:#ffffff;
+    --ink:#2b2420;
+    --ink-soft:#6b6157;
+    --line:#e7ddc9;
+    --accent:#8a5a2b;
+    --accent-deep:#5c3a1a;
+    --gold:#b98a2f;
+    --hamotzi:#8a5a2b;
+    --mezonot:#a97142;
+    --hagafen:#7a2f3a;
+    --haetz:#3f6b3f;
+    --haadama:#4f7a52;
+    --shehakol:#5a5f75;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #fff9ee 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    padding:32px 18px 60px;
+  }
+  .wrap{max-width:620px;margin:0 auto;}
+  header{text-align:center;margin-bottom:22px;}
+  header h1{
+    font-size:1.7rem;
+    margin:0 0 6px;
+    letter-spacing:-0.02em;
+    color:var(--accent-deep);
+  }
+  header p{margin:0;color:var(--ink-soft);font-size:0.95rem;}
+  .hebrew-title{
+    font-size:1.1rem;
+    color:var(--gold);
+    direction:rtl;
+    margin-top:4px;
+    font-weight:600;
+  }
+  .search-box{
+    position:relative;
+    margin:22px 0 10px;
+  }
+  .search-box input{
+    width:100%;
+    padding:16px 46px 16px 18px;
+    font-size:1.08rem;
+    border-radius:14px;
+    border:1.5px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    outline:none;
+    box-shadow:0 1px 2px rgba(60,45,20,0.04);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .search-box input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 4px rgba(138,90,43,0.12);
+  }
+  .search-box .icon{
+    position:absolute;
+    right:16px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--ink-soft);
+    pointer-events:none;
+    font-size:1.1rem;
+  }
+  .hint{font-size:0.82rem;color:var(--ink-soft);margin:0 0 18px 4px;}
+
+  #results{display:flex;flex-direction:column;gap:10px;}
+
+  .food-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    cursor:pointer;
+    transition:transform .1s, box-shadow .1s, border-color .1s;
+  }
+  .food-row:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 14px rgba(60,45,20,0.08);
+    border-color:var(--accent);
+  }
+  .food-row .name{font-weight:600;font-size:1rem;}
+  .food-row .name .alt{font-weight:400;color:var(--ink-soft);font-size:0.85rem;}
+  .badge{
+    font-size:0.72rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    padding:5px 10px;
+    border-radius:999px;
+    color:#fff;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:36px 16px;
+    color:var(--ink-soft);
+  }
+  .empty-state .cat-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    margin-top:18px;
+    text-align:left;
+  }
+  .cat-chip{
+    border-radius:10px;
+    padding:10px 12px;
+    color:#fff;
+    font-size:0.85rem;
+  }
+  .cat-chip b{display:block;font-size:0.95rem;margin-bottom:2px;}
+
+  /* Detail card / modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(30,22,12,0.45);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    padding:40px 16px;
+    overflow-y:auto;
+    z-index:10;
+  }
+  .overlay.show{display:flex;}
+  .detail-card{
+    background:var(--card);
+    border-radius:18px;
+    max-width:520px;
+    width:100%;
+    padding:26px 26px 22px;
+    box-shadow:0 20px 60px rgba(30,22,12,0.25);
+    position:relative;
+  }
+  .close-btn{
+    position:absolute;top:16px;right:16px;
+    background:none;border:none;font-size:1.3rem;
+    color:var(--ink-soft);cursor:pointer;
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .close-btn:hover{background:var(--bg);}
+  .detail-card h2{margin:0 0 2px;font-size:1.35rem;}
+  .detail-card .subtitle{color:var(--ink-soft);font-size:0.88rem;margin-bottom:16px;}
+  .section-label{
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:18px 0 8px;
+  }
+  .bracha-block{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+  }
+  .bracha-hebrew{
+    direction:rtl;
+    font-size:1.5rem;
+    line-height:1.8;
+    margin-bottom:8px;
+    color:var(--ink);
+  }
+  .bracha-translit{
+    font-style:italic;
+    color:var(--accent-deep);
+    margin-bottom:6px;
+    line-height:1.5;
+  }
+  .bracha-english{
+    color:var(--ink-soft);
+    font-size:0.92rem;
+    line-height:1.5;
+  }
+  .note-box{
+    margin-top:14px;
+    background:#fff8e8;
+    border:1px solid #eeddb0;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:0.87rem;
+    color:#6b5218;
+    line-height:1.5;
+  }
+  .note-box b{color:#4a3a10;}
+  footer{
+    text-align:center;
+    margin-top:40px;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+  footer a{color:var(--accent-deep);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>What's the Bracha?</h1>
+    <div class="hebrew-title">מה מברכים?</div>
+    <p>Type any food to find its blessing before — and after — eating.</p>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="e.g. banana, pizza, coffee, matzah…" autocomplete="off" autofocus>
+    <span class="icon">🔍</span>
+  </div>
+  <p class="hint">Sephardi / Modern Hebrew pronunciation shown throughout.</p>
+
+  <div id="results"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="detail-card" id="detailCard"></div>
+</div>
+
+<footer>
+  This is a helpful reference, not a halachic ruling — for mixed dishes, sandwiches, unusual foods,<br>
+  or anything you're unsure about, ask your rabbi. אין זה פסק הלכה.
+</footer>
+
+<script>
+/* ---------- Blessing category definitions ---------- */
+const CATEGORIES = {
+  hamotzi: {
+    label: "HaMotzi", color: "var(--hamotzi)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם הַמּוֹצִיא לֶחֶם מִן הָאָרֶץ",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, hamotzi lechem min ha'aretz.",
+    english: "Blessed are You, LORD our God, King of the universe, who brings forth bread from the earth."
+  },
+  mezonot: {
+    label: "Mezonot", color: "var(--mezonot)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם בּוֹרֵא מִינֵי מְזוֹנוֹת",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, borei minei mezonot.",
+    english: "Blessed are You, LORD our God, King of the universe, who creates varieties of nourishment."
+  },
+  hagafen: {
+    label: "HaGafen", color: "var(--hagafen)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם בּוֹרֵא פְּרִי הַגָּפֶן",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, borei pri hagafen.",
+    english: "Blessed are You, LORD our God, King of the universe, who creates the fruit of the vine."
+  },
+  haetz: {
+    label: "Ha'Etz", color: "var(--haetz)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם בּוֹרֵא פְּרִי הָעֵץ",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, borei pri ha'etz.",
+    english: "Blessed are You, LORD our God, King of the universe, who creates the fruit of the tree."
+  },
+  haadama: {
+    label: "Ha'Adama", color: "var(--haadama)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם בּוֹרֵא פְּרִי הָאֲדָמָה",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, borei pri ha'adama.",
+    english: "Blessed are You, LORD our God, King of the universe, who creates the fruit of the ground."
+  },
+  shehakol: {
+    label: "Shehakol", color: "var(--shehakol)",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם שֶׁהַכֹּל נִהְיֶה בִּדְבָרוֹ",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, shehakol nihiyeh bidvaro.",
+    english: "Blessed are You, LORD our God, King of the universe, by whose word all things came to be."
+  }
+};
+
+/* ---------- After-blessing (bracha acharona) definitions ---------- */
+const AFTER = {
+  birkatHamazon: {
+    label: "Birkat Hamazon",
+    intro: "The full Grace After Meals, said after eating bread to the point of a real meal (roughly a kezayit or more). If three or more adults ate together, begin with the Zimmun below; otherwise skip straight to the First Blessing.",
+    sections: [
+      {
+        title: "Zimmun — invitation (only if 3+ adults ate together)",
+        hebrew: "מְזַמֵּן: רַבּוֹתַי נְבָרֵךְ.<br>הַמְסֻבִּים: יְהִי שֵׁם ה' מְבֹרָךְ מֵעַתָּה וְעַד עוֹלָם.<br>מְזַמֵּן: יְהִי שֵׁם ה' מְבֹרָךְ מֵעַתָּה וְעַד עוֹלָם. בִּרְשׁוּת מָרָנָן וְרַבָּנָן וְרַבּוֹתַי, נְבָרֵךְ (אֱלֹהֵינוּ) שֶׁאָכַלְנוּ מִשֶּׁלוֹ.<br>הַמְסֻבִּים: בָּרוּךְ (אֱלֹהֵינוּ) שֶׁאָכַלְנוּ מִשֶּׁלוֹ וּבְטוּבוֹ חָיִינוּ.<br>מְזַמֵּן: בָּרוּךְ (אֱלֹהֵינוּ) שֶׁאָכַלְנוּ מִשֶּׁלוֹ וּבְטוּבוֹ חָיִינוּ.<br>כֻּלָּם: בָּרוּךְ הוּא וּבָרוּךְ שְׁמוֹ.",
+        translit: "Leader: Rabotai nevareich.<br>All: Yehi shem Adonai mevorach me'atah ve'ad olam.<br>Leader: Yehi shem Adonai mevorach me'atah ve'ad olam. Birshut maranan verabanan verabotai, nevareich (Eloheinu — if ten or more are present) she'achalnu mishelo.<br>All: Baruch (Eloheinu) she'achalnu mishelo uvtuvo chayinu.<br>Leader: Baruch (Eloheinu) she'achalnu mishelo uvtuvo chayinu.<br>All: Baruch Hu uvaruch Shemo.",
+        english: "Leader: Friends, let us say the blessing.<br>All: May the Name of the LORD be blessed from now and forever.<br>Leader: May the Name of the LORD be blessed from now and forever. With the permission of those present, let us bless (our God, if ten or more are present) the One of whose food we have eaten.<br>All: Blessed is (our God,) the One of whose food we have eaten and by whose goodness we live.<br>Leader: Blessed is (our God,) the One of whose food we have eaten and by whose goodness we live.<br>All: Blessed is He, and blessed is His Name."
+      },
+      {
+        title: "First blessing — Birkat HaZan (sustenance)",
+        hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַזָּן אֶת הָעוֹלָם כֻּלּוֹ בְּטוּבוֹ בְּחֵן בְּחֶסֶד וּבְרַחֲמִים. הוּא נוֹתֵן לֶחֶם לְכָל בָּשָׂר כִּי לְעוֹלָם חַסְדּוֹ. וּבְטוּבוֹ הַגָּדוֹל תָּמִיד לֹא חָסַר לָנוּ וְאַל יֶחְסַר לָנוּ מָזוֹן לְעוֹלָם וָעֶד. בַּעֲבוּר שְׁמוֹ הַגָּדוֹל כִּי הוּא אֵל זָן וּמְפַרְנֵס לַכֹּל וּמֵטִיב לַכֹּל וּמֵכִין מָזוֹן לְכָל בְּרִיּוֹתָיו אֲשֶׁר בָּרָא. בָּרוּךְ אַתָּה ה', הַזָּן אֶת הַכֹּל.",
+        translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, hazan et ha'olam kulo b'tuvo b'chen b'chesed uvrachamim. Hu noten lechem l'chol basar, ki l'olam chasdo. Uvtuvo hagadol tamid lo chasar lanu, v'al yechsar lanu mazon l'olam va'ed. Ba'avur shemo hagadol, ki hu Kel zan um'farnes lakol, umeitiv lakol, umeichin mazon l'chol beriyotav asher bara. Baruch Atah Adonai, hazan et hakol.",
+        english: "Blessed are You, LORD our God, King of the universe, who feeds the whole world in His goodness, with grace, kindness and mercy. He gives bread to all flesh, for His kindness is everlasting. Through His great goodness we have never lacked, and may we never lack sustenance, for the sake of His great Name — for He is a God who feeds and sustains all, does good to all, and prepares food for all the creatures He created. Blessed are You, LORD, who feeds all."
+      },
+      {
+        title: "Second blessing — Birkat Ha'aretz (the land)",
+        hebrew: "נוֹדֶה לְּךָ ה' אֱלֹהֵינוּ עַל שֶׁהִנְחַלְתָּ לַאֲבוֹתֵינוּ אֶרֶץ חֶמְדָּה טוֹבָה וּרְחָבָה, וְעַל שֶׁהוֹצֵאתָנוּ ה' אֱלֹהֵינוּ מֵאֶרֶץ מִצְרַיִם וּפְדִיתָנוּ מִבֵּית עֲבָדִים, וְעַל בְּרִיתְךָ שֶׁחָתַמְתָּ בִּבְשָׂרֵנוּ, וְעַל תּוֹרָתְךָ שֶׁלִּמַּדְתָּנוּ, וְעַל חֻקֶּיךָ שֶׁהוֹדַעְתָּנוּ, וְעַל חַיִּים חֵן וָחֶסֶד שֶׁחוֹנַנְתָּנוּ, וְעַל אֲכִילַת מָזוֹן שָׁאַתָּה זָן וּמְפַרְנֵס אוֹתָנוּ תָּמִיד בְּכָל יוֹם וּבְכָל עֵת וּבְכָל שָׁעָה. וְעַל הַכֹּל ה' אֱלֹהֵינוּ אֲנַחְנוּ מוֹדִים לָךְ וּמְבָרְכִים אוֹתָךְ, יִתְבָּרַךְ שִׁמְךָ בְּפִי כָּל חַי תָּמִיד לְעוֹלָם וָעֶד. כַּכָּתוּב: וְאָכַלְתָּ וְשָׂבָעְתָּ וּבֵרַכְתָּ אֶת ה' אֱלֹהֶיךָ עַל הָאָרֶץ הַטֹּבָה אֲשֶׁר נָתַן לָךְ. בָּרוּךְ אַתָּה ה', עַל הָאָרֶץ וְעַל הַמָּזוֹן.",
+        translit: "Nodeh lecha Adonai Eloheinu al shehinchalta la'avoteinu eretz chemdah tovah ur'chavah, v'al shehotzeitanu Adonai Eloheinu me'eretz Mitzrayim uf'ditanu mibeit avadim, v'al brit'cha shechatamta bivsareinu, v'al Torat'cha shelimad'tanu, v'al chukecha shehoda'tanu, v'al chayim chen vachesed shechonantanu, v'al achilat mazon sha'atah zan um'farnes otanu tamid b'chol yom uv'chol eit uv'chol sha'ah. V'al hakol, Adonai Eloheinu, anachnu modim lach um'varchim otach, yitbarach shimcha b'fi kol chai tamid l'olam va'ed. Kakatuv: v'achalta v'savata uveirachta et Adonai Elohecha al ha'aretz hatovah asher natan lach. Baruch Atah Adonai, al ha'aretz v'al hamazon.",
+        english: "We thank You, LORD our God, for having given our ancestors a lovely, good and spacious land; for taking us out, LORD our God, from the land of Egypt and redeeming us from the house of slavery; for Your covenant sealed in our flesh; for Your Torah which You taught us; for Your laws which You made known to us; for the life, favour and kindness You have graced us with; and for the food by which You feed and sustain us always, every day, at every time, every hour. For all this, LORD our God, we thank You and bless You — may Your Name be blessed by the mouth of every living being, always, forever. As it is written: \"You will eat, and be satisfied, and bless the LORD your God for the good land He has given you.\" Blessed are You, LORD, for the land and for the food."
+      },
+      {
+        title: "Third blessing — Boneh Yerushalayim (Jerusalem)",
+        hebrew: "רַחֵם נָא ה' אֱלֹהֵינוּ עַל יִשְׂרָאֵל עַמֶּךָ, וְעַל יְרוּשָׁלַיִם עִירֶךָ, וְעַל צִיּוֹן מִשְׁכַּן כְּבוֹדֶךָ, וְעַל מַלְכוּת בֵּית דָּוִד מְשִׁיחֶךָ, וְעַל הַבַּיִת הַגָּדוֹל וְהַקָּדוֹשׁ שֶׁנִּקְרָא שִׁמְךָ עָלָיו. אֱלֹהֵינוּ אָבִינוּ, רְעֵנוּ זוּנֵנוּ פַּרְנְסֵנוּ וְכַלְכְּלֵנוּ וְהַרְוִיחֵנוּ, וְהַרְוַח לָנוּ ה' אֱלֹהֵינוּ מְהֵרָה מִכָּל צָרוֹתֵינוּ. וְנָא אַל תַּצְרִיכֵנוּ ה' אֱלֹהֵינוּ לֹא לִידֵי מַתְּנַת בָּשָׂר וָדָם וְלֹא לִידֵי הַלְוָאָתָם, כִּי אִם לְיָדְךָ הַמְּלֵאָה הַפְּתוּחָה הַקְּדוֹשָׁה וְהָרְחָבָה, שֶׁלֹּא נֵבוֹשׁ וְלֹא נִכָּלֵם לְעוֹלָם וָעֶד. וּבְנֵה יְרוּשָׁלַיִם עִיר הַקֹּדֶשׁ בִּמְהֵרָה בְיָמֵינוּ. בָּרוּךְ אַתָּה ה', בּוֹנֵה בְרַחֲמָיו יְרוּשָׁלָיִם. אָמֵן.",
+        translit: "Rachem na Adonai Eloheinu al Yisrael amecha, v'al Yerushalayim irecha, v'al Tziyon mishkan k'vodecha, v'al malchut beit David m'shichecha, v'al habayit hagadol v'hakadosh shenikra shimcha alav. Eloheinu Avinu, re'einu zuneinu parn'seinu v'chalk'leinu v'harvicheinu, v'harvach lanu Adonai Eloheinu m'heirah mikol tzaroteinu. V'na al tatzricheinu Adonai Eloheinu lo lidei matnat basar vadam v'lo lidei halva'atam, ki im l'yad'cha ham'lei'ah hap'tuchah hak'doshah v'harchavah, shelo neivosh v'lo nikalem l'olam va'ed. Uv'nei Yerushalayim ir hakodesh bimheirah v'yameinu. Baruch Atah Adonai, boneh v'rachamav Yerushalayim. Amen.",
+        english: "Please, LORD our God, have mercy on Israel Your people, on Jerusalem Your city, on Zion the dwelling-place of Your glory, on the kingship of the house of David Your anointed, and on the great and holy House called by Your Name. Our God, our Father, tend us, feed us, sustain us, support us and relieve us — speedily relieve us, LORD our God, from all our troubles. Please, LORD our God, make us dependent not on the gifts of others nor on their loans, but on Your full, open, holy and generous hand, so that we may never be shamed or humiliated. Rebuild Jerusalem, the holy city, speedily in our days. Blessed are You, LORD, who rebuilds Jerusalem in His mercy. Amen."
+      },
+      {
+        title: "Fourth blessing — HaTov VeHaMeitiv (who is good and does good)",
+        hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הָאֵל אָבִינוּ מַלְכֵּנוּ אַדִּירֵנוּ בּוֹרְאֵנוּ גּוֹאֲלֵנוּ יוֹצְרֵנוּ קְדוֹשֵׁנוּ קְדוֹשׁ יַעֲקֹב, רוֹעֵנוּ רוֹעֵה יִשְׂרָאֵל, הַמֶּלֶךְ הַטּוֹב וְהַמֵּטִיב לַכֹּל, שֶׁבְּכָל יוֹם וָיוֹם הוּא הֵטִיב הוּא מֵטִיב הוּא יֵיטִיב לָנוּ. הוּא גְמָלָנוּ הוּא גוֹמְלֵנוּ הוּא יִגְמְלֵנוּ לָעַד, לְחֵן וּלְחֶסֶד וּלְרַחֲמִים וּלְרֶוַח הַצָּלָה וְהַצְלָחָה, בְּרָכָה וִישׁוּעָה, נֶחָמָה פַּרְנָסָה וְכַלְכָּלָה וְרַחֲמִים וְחַיִּים וְשָׁלוֹם וְכָל טוֹב, וּמִכָּל טוּב לְעוֹלָם אַל יְחַסְּרֵנוּ.",
+        translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, ha'Kel Avinu Malkeinu adireinu bor'einu go'aleinu yotz'reinu k'dosheinu k'dosh Ya'akov, ro'einu ro'eh Yisrael, hamelech hatov v'hameitiv lakol, shebechol yom vayom hu heitiv, hu meitiv, hu yeitiv lanu. Hu g'malanu, hu gomleinu, hu yigmeleinu la'ad, l'chen ul'chesed ul'rachamim, ul'revach hatzalah v'hatzlachah, brachah vishuah, nechamah parnasah v'chalkalah v'rachamim v'chayim v'shalom v'chol tov, umikol tuv l'olam al y'chasreinu.",
+        english: "Blessed are You, LORD our God, King of the universe, the God who is our Father, our King, our Strength, our Creator, our Redeemer, our Maker, our Holy One, the Holy One of Jacob, our Shepherd, the Shepherd of Israel — the King who is good and does good to all, who has done good for us every single day, does good for us, and will do good for us forever. He has granted us, grants us, and will forever grant us grace, kindness and mercy, relief and rescue, prosperity, blessing and salvation, comfort, sustenance and support, mercy, life, peace and all that is good — and may He never let us lack any good thing."
+      },
+      {
+        title: "Closing — Harachaman lines",
+        hebrew: "הָרַחֲמָן הוּא יִמְלוֹךְ עָלֵינוּ לְעוֹלָם וָעֶד. הָרַחֲמָן הוּא יִתְבָּרַךְ בַּשָּׁמַיִם וּבָאָרֶץ. הָרַחֲמָן הוּא יִשְׁתַּבַּח לְדוֹר דּוֹרִים, וְיִתְפָּאַר בָּנוּ לָעַד וּלְנֵצַח נְצָחִים, וְיִתְהַדַּר בָּנוּ לָעַד וּלְעוֹלְמֵי עוֹלָמִים. הָרַחֲמָן הוּא יְפַרְנְסֵנוּ בְּכָבוֹד. הָרַחֲמָן הוּא יִשְׁבֹּר עֻלֵּנוּ מֵעַל צַוָּארֵנוּ, וְהוּא יוֹלִיכֵנוּ קוֹמְמִיּוּת לְאַרְצֵנוּ. הָרַחֲמָן הוּא יִשְׁלַח לָנוּ בְּרָכָה מְרֻבָּה בַּבַּיִת הַזֶּה, וְעַל שֻׁלְחָן זֶה שֶׁאָכַלְנוּ עָלָיו. הָרַחֲמָן הוּא יִשְׁלַח לָנוּ אֶת אֵלִיָּהוּ הַנָּבִיא זָכוּר לַטּוֹב, וִיבַשֶּׂר לָנוּ בְּשׂוֹרוֹת טוֹבוֹת יְשׁוּעוֹת וְנֶחָמוֹת. הָרַחֲמָן הוּא יְבָרֵךְ אֶת כָּל הַמְסֻבִּין כָּאן. הָרַחֲמָן הוּא יְזַכֵּנוּ לִימוֹת הַמָּשִׁיחַ וּלְחַיֵּי הָעוֹלָם הַבָּא.",
+        translit: "Harachaman Hu yimloch aleinu l'olam va'ed. Harachaman Hu yitbarach bashamayim uva'aretz. Harachaman Hu yishtabach l'dor dorim, v'yitpa'ar banu la'ad ul'neitzach n'tzachim, v'yit'hadar banu la'ad ul'olmei olamim. Harachaman Hu y'farn'seinu b'chavod. Harachaman Hu yishbor uleinu me'al tzavareinu, v'hu yolicheinu kom'miyut l'artzeinu. Harachaman Hu yishlach lanu brachah m'ruba babayit hazeh, v'al shulchan zeh she'achalnu alav. Harachaman Hu yishlach lanu et Eliyahu hanavi, zachur latov, vivaser lanu b'sorot tovot y'shuot v'nechamot. Harachaman Hu y'vareich et kol ham'subin kan. Harachaman Hu y'zakeinu limot haMashiach ul'chayei ha'olam haba.",
+        english: "May the Merciful One reign over us forever. May the Merciful One be blessed in heaven and on earth. May the Merciful One be praised for all generations, take pride in us forever, and be glorified through us for all eternity. May the Merciful One sustain us with dignity. May the Merciful One break the yoke from our neck and lead us upright into our land. May the Merciful One send abundant blessing into this home and onto this table at which we have eaten. May the Merciful One send us Elijah the Prophet — may he be remembered for good — to bring us good tidings of salvation and comfort. May the Merciful One bless everyone gathered here. May the Merciful One make us worthy of the days of the Messiah and of life in the World to Come."
+      },
+      {
+        title: "Closing verse",
+        hebrew: "מִגְדּוֹל יְשׁוּעוֹת מַלְכּוֹ, וְעֹשֶׂה חֶסֶד לִמְשִׁיחוֹ, לְדָוִד וּלְזַרְעוֹ עַד עוֹלָם. עֹשֶׂה שָׁלוֹם בִּמְרוֹמָיו, הוּא יַעֲשֶׂה שָׁלוֹם עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְאִמְרוּ אָמֵן. יְראוּ אֶת ה' קְדֹשָׁיו, כִּי אֵין מַחְסוֹר לִירֵאָיו. כְּפִירִים רָשׁוּ וְרָעֵבוּ, וְדֹרְשֵׁי ה' לֹא יַחְסְרוּ כָל טוֹב. הוֹדוּ לַה' כִּי טוֹב, כִּי לְעוֹלָם חַסְדּוֹ.",
+        translit: "Migdol y'shuot malko, v'oseh chesed lim'shicho, l'David ul'zaro ad olam. Oseh shalom bimromav, Hu ya'aseh shalom aleinu v'al kol Yisrael, v'imru amen. Y'ru et Adonai k'doshav, ki ein machsor lirei'av. K'firim rashu v'ra'eivu, v'dor'shei Adonai lo yachs'ru chol tov. Hodu l'Adonai ki tov, ki l'olam chasdo.",
+        english: "He is a tower of salvation for His king, and shows kindness to His anointed — to David and his descendants forever. He who makes peace in His high places, may He make peace for us and for all Israel — and say: Amen. Fear the LORD, His holy ones, for those who fear Him lack nothing. Young lions may grow poor and hungry, but those who seek the LORD lack no good thing. Give thanks to the LORD, for He is good, for His kindness is everlasting."
+      }
+    ],
+    note: "On Shabbat, Rosh Chodesh and Yom Tov, extra paragraphs are inserted into the Third Blessing (Retzeh / Ya'aleh V'Yavo) — not included here, so check a bencher or siddur on those days. There's also a traditional line blessing the host(s) of the meal, left out here since the wording is usually personalized to who's hosting. This transcription hasn't been checked character-by-character against a printed bencher — treat it as a helpful reference and confirm against your own siddur/bencher before relying on it for practical use."
+  },
+  alHamichya: {
+    label: "Al HaMichya (Me'ein Shalosh — grain)",
+    hebrew: "...עַל הַמִּחְיָה וְעַל הַכַּלְכָּלָה ... עַל הָאָרֶץ וְעַל הַמִּחְיָה",
+    translit: "...al hamichya ve'al hakalkala ... [closing:] Baruch Atah Adonai, al ha'aretz ve'al hamichya.",
+    english: "The 'three-blessing-in-one' after grain products (cake, cookies, pasta, cereal) — said after a kezayit eaten within a few minutes."
+  },
+  alHagefen: {
+    label: "Al HaGefen (Me'ein Shalosh — wine)",
+    hebrew: "...עַל הַגֶּפֶן וְעַל פְּרִי הַגֶּפֶן ... עַל הָאָרֶץ וְעַל פְּרִי הַגֶּפֶן",
+    translit: "...al hagefen ve'al pri hagefen ... [closing:] Baruch Atah Adonai, al ha'aretz ve'al pri hagefen.",
+    english: "Said after wine or grape juice — roughly a revi'it (~86-150ml) within a few minutes."
+  },
+  alHaetz: {
+    label: "Al Ha'Etz (Me'ein Shalosh — special fruits)",
+    hebrew: "...עַל הָעֵץ וְעַל פְּרִי הָעֵץ ... עַל הָאָרֶץ וְעַל הַפֵּרוֹת",
+    translit: "...al ha'etz ve'al pri ha'etz ... [closing:] Baruch Atah Adonai, al ha'aretz ve'al haperot.",
+    english: "Said after grapes, figs, pomegranates, olives, or dates — the fruits of the Seven Species — after a kezayit within a few minutes."
+  },
+  boreiNefashot: {
+    label: "Borei Nefashot",
+    hebrew: "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם בּוֹרֵא נְפָשׁוֹת רַבּוֹת וְחֶסְרוֹנָן עַל כָּל מַה שֶּׁבָּרָאתָ לְהַחֲיוֹת בָּהֶם נֶפֶשׁ כָּל חָי. בָּרוּךְ חֵי הָעוֹלָמִים",
+    translit: "Baruch Atah Adonai, Eloheinu Melech ha'olam, borei nefashot rabot vechesronan, al kol mah shebarata lehachayot bahem nefesh kol chai. Baruch chei ha'olamim.",
+    english: "Who creates many living things and their needs — for everything You created to sustain every living being. Blessed is the Life of all worlds. (The default after-blessing for everything else, incl. fruit/veg outside the Seven Species, meat, dairy, drinks, sweets.)"
+  }
+};
+
+/* ---------- Food database ---------- */
+/* cat: category key. seven: true if one of the Seven Species fruits (grapes, figs, pomegranates, olives, dates)
+   -> changes the after-blessing to Al Ha'Etz instead of Borei Nefashot. after: override the computed after-blessing. */
+const FOODS = [
+  // Breads / hamotzi
+  {name:"Bread", aliases:["loaf","toast","white bread","brown bread","sliced bread"], cat:"hamotzi"},
+  {name:"Bagel", aliases:[], cat:"hamotzi"},
+  {name:"Challah", aliases:[], cat:"hamotzi"},
+  {name:"Pita", aliases:["pitta"], cat:"hamotzi"},
+  {name:"Roll", aliases:["bread roll","bun"], cat:"hamotzi"},
+  {name:"Matzah", aliases:["matzo","matza"], cat:"hamotzi", note:"Still counts as bread even though it's unleavened. A small, sub-kezayit piece may take Mezonot per some opinions — this matters most at the Seder, so check with your rabbi beforehand."},
+  {name:"Pizza", aliases:[], cat:"hamotzi", note:"Hamotzi when eaten as a meal (e.g. two slices' worth); a single small slice as a snack is sometimes treated as Mezonot — a genuinely disputed case, worth asking your rabbi."},
+  {name:"Sandwich", aliases:[], cat:"hamotzi"},
+  {name:"Croutons", aliases:[], cat:"hamotzi"},
+
+  // Mezonot
+  {name:"Cake", aliases:["sponge cake"], cat:"mezonot", after:"alHamichya"},
+  {name:"Cookie", aliases:["biscuit","biscuits"], cat:"mezonot", after:"alHamichya"},
+  {name:"Cracker", aliases:["crackers"], cat:"mezonot", after:"alHamichya"},
+  {name:"Pretzel", aliases:[], cat:"mezonot", after:"alHamichya"},
+  {name:"Pasta", aliases:["spaghetti","noodles","macaroni"], cat:"mezonot", after:"alHamichya"},
+  {name:"Doughnut", aliases:["donut"], cat:"mezonot", after:"alHamichya"},
+  {name:"Pie", aliases:["fruit pie","pastry"], cat:"mezonot", after:"alHamichya"},
+  {name:"Cereal (wheat/oat based)", aliases:["cereal","porridge","oatmeal","weetabix","shredded wheat"], cat:"mezonot", after:"alHamichya", note:"Cereal made from wheat, oats, barley, rye or spelt is Mezonot. Puffed rice or corn cereal is Shehakol instead."},
+  {name:"Barley", aliases:["barley soup"], cat:"mezonot", after:"alHamichya"},
+  {name:"Rice (cooked)", aliases:["rice","cooked rice"], cat:"mezonot", after:"alHamichya", note:"Sephardi practice generally treats cooked rice as Mezonot; common Ashkenazi practice treats it as Shehakol instead. Worth checking your own family's custom."},
+  {name:"Sushi rice", aliases:["sushi"], cat:"mezonot", after:"alHamichya", note:"Follows the same rice dispute as above — Mezonot (Sephardi) vs Shehakol (common Ashkenazi custom)."},
+  {name:"Couscous", aliases:["cous cous"], cat:"mezonot", after:"alHamichya", note:"Made from wheat semolina, so Mezonot (unlike quinoa, which is Shehakol)."},
+  {name:"Muffin", aliases:["muffins","cupcake","scone"], cat:"mezonot", after:"alHamichya"},
+  {name:"Pancakes", aliases:["pancake","crepe","waffle","waffles"], cat:"mezonot", after:"alHamichya"},
+  {name:"Granola", aliases:["muesli","flapjack","oat bar"], cat:"mezonot", after:"alHamichya", note:"Mezonot when oats are the main ingredient."},
+
+  // Wine
+  {name:"Wine", aliases:["red wine","white wine"], cat:"hagafen", after:"alHagefen"},
+  {name:"Grape juice", aliases:[], cat:"hagafen", after:"alHagefen"},
+  {name:"Champagne", aliases:["sparkling wine","prosecco"], cat:"hagafen", after:"alHagefen"},
+
+  // Ha'etz — tree fruit
+  {name:"Apple", aliases:[], cat:"haetz"},
+  {name:"Pear", aliases:[], cat:"haetz"},
+  {name:"Orange", aliases:[], cat:"haetz"},
+  {name:"Grapefruit", aliases:[], cat:"haetz"},
+  {name:"Lemon", aliases:[], cat:"haetz", note:"Usually only eaten as flavouring, so a bracha is often not made at all on a plain lemon slice — ask your rabbi if unsure."},
+  {name:"Grapes", aliases:["grape"], cat:"haetz", seven:true},
+  {name:"Fig", aliases:["figs"], cat:"haetz", seven:true},
+  {name:"Pomegranate", aliases:[], cat:"haetz", seven:true},
+  {name:"Date", aliases:["dates","medjool date"], cat:"haetz", seven:true},
+  {name:"Olive", aliases:["olives"], cat:"haetz", seven:true},
+  {name:"Peach", aliases:[], cat:"haetz"},
+  {name:"Plum", aliases:[], cat:"haetz"},
+  {name:"Prunes", aliases:["prune","dried plums"], cat:"haetz", note:"Dried fruit keeps the blessing of the fresh fruit, so Ha'Etz."},
+  {name:"Raisins", aliases:["raisin","sultanas","currants"], cat:"haetz", seven:true, note:"Dried grapes — still one of the Seven Species, so the after-blessing is Al Ha'Etz."},
+  {name:"Nectarine", aliases:["nectarines"], cat:"haetz"},
+  {name:"Clementine", aliases:["satsuma","mandarin","tangerine","easy peeler"], cat:"haetz"},
+  {name:"Lime", aliases:["limes"], cat:"haetz"},
+  {name:"Persimmon", aliases:["sharon fruit"], cat:"haetz"},
+  {name:"Lychee", aliases:["lychees","litchi"], cat:"haetz"},
+  {name:"Guava", aliases:[], cat:"haetz"},
+  {name:"Blueberry", aliases:["blueberries"], cat:"haetz", note:"Grows on a perennial woody bush, so common practice is Ha'Etz."},
+  {name:"Raspberry", aliases:["raspberries","blackberry","blackberries"], cat:"haetz", note:"Common practice is Ha'Etz, though some poskim hold Ha'Adama — worth checking your own custom."},
+  {name:"Hazelnut", aliases:["hazelnuts"], cat:"haetz"},
+  {name:"Brazil nut", aliases:["brazil nuts"], cat:"haetz"},
+  {name:"Macadamia", aliases:["macadamia nuts"], cat:"haetz"},
+  {name:"Chestnut", aliases:["chestnuts"], cat:"haetz"},
+  {name:"Pine nuts", aliases:["pine nut"], cat:"haetz"},
+  {name:"Cherry", aliases:["cherries"], cat:"haetz"},
+  {name:"Apricot", aliases:[], cat:"haetz"},
+  {name:"Mango", aliases:[], cat:"haetz"},
+  {name:"Avocado", aliases:[], cat:"haetz"},
+  {name:"Coconut", aliases:[], cat:"haetz"},
+  {name:"Kiwi", aliases:["kiwi fruit"], cat:"haetz"},
+  {name:"Almond", aliases:["almonds"], cat:"haetz"},
+  {name:"Walnut", aliases:["walnuts"], cat:"haetz"},
+  {name:"Pistachio", aliases:["pistachios"], cat:"haetz"},
+  {name:"Cashew", aliases:["cashews"], cat:"haetz"},
+  {name:"Pecan", aliases:["pecans"], cat:"haetz"},
+  {name:"Applesauce", aliases:["apple sauce"], cat:"haetz"},
+
+  // Ha'adama — ground produce
+  {name:"Banana", aliases:[], cat:"haadama", note:"Grows on a giant herbaceous plant, not a tree, despite appearances — hence Ha'Adama, not Ha'Etz."},
+  {name:"Pineapple", aliases:[], cat:"haadama", note:"Common practice follows Ha'Adama, though this one is genuinely disputed among poskim (some hold Shehakol)."},
+  {name:"Strawberry", aliases:["strawberries"], cat:"haadama"},
+  {name:"Watermelon", aliases:[], cat:"haadama"},
+  {name:"Melon", aliases:["cantaloupe","honeydew"], cat:"haadama"},
+  {name:"Potato", aliases:["baked potato","mashed potato","jacket potato"], cat:"haadama"},
+  {name:"Chips", aliases:["fries","french fries","crisps"], cat:"haadama"},
+  {name:"Tomato", aliases:[], cat:"haadama"},
+  {name:"Cucumber", aliases:[], cat:"haadama"},
+  {name:"Carrot", aliases:["carrots"], cat:"haadama"},
+  {name:"Celery", aliases:["celery sticks","celery stalks"], cat:"haadama"},
+  {name:"Beetroot", aliases:["beet","beets","borscht"], cat:"haadama", note:"Ha'Adama whether raw, cooked or pickled. Beetroot juice on its own is Shehakol."},
+  {name:"Sweet potato", aliases:["sweet potatoes","yam"], cat:"haadama"},
+  {name:"Spinach", aliases:[], cat:"haadama"},
+  {name:"Cabbage", aliases:["coleslaw","red cabbage"], cat:"haadama"},
+  {name:"Kale", aliases:[], cat:"haadama"},
+  {name:"Radish", aliases:["radishes"], cat:"haadama"},
+  {name:"Parsnip", aliases:["parsnips"], cat:"haadama"},
+  {name:"Turnip", aliases:["swede"], cat:"haadama"},
+  {name:"Leek", aliases:["leeks","spring onion","spring onions"], cat:"haadama"},
+  {name:"Asparagus", aliases:[], cat:"haadama"},
+  {name:"Peas", aliases:["pea","green beans","mangetout","edamame"], cat:"haadama"},
+  {name:"Butternut squash", aliases:["squash","butternut"], cat:"haadama"},
+  {name:"Chilli pepper", aliases:["chilli","chili","chillies","jalapeno"], cat:"haadama", note:"Ha'Adama when eaten as a food. Used as seasoning in a dish it's covered by the main food's blessing; a very hot chilli eaten alone may be Shehakol per some opinions."},
+  {name:"Papaya", aliases:["pawpaw"], cat:"haadama", note:"Common practice is Ha'Adama, as the plant isn't considered a true tree; some hold Ha'Etz."},
+  {name:"Sunflower seeds", aliases:["pumpkin seeds"], cat:"haadama"},
+  {name:"Tahini", aliases:["sesame","sesame seeds","sesame butter"], cat:"haadama", note:"Sesame is Ha'Adama. Tahini as a dip with other food is usually covered by that food's blessing."},
+  {name:"Lettuce", aliases:["salad leaves"], cat:"haadama"},
+  {name:"Onion", aliases:[], cat:"haadama"},
+  {name:"Garlic", aliases:[], cat:"haadama"},
+  {name:"Pepper", aliases:["bell pepper","capsicum"], cat:"haadama"},
+  {name:"Courgette", aliases:["zucchini"], cat:"haadama"},
+  {name:"Aubergine", aliases:["eggplant"], cat:"haadama"},
+  {name:"Broccoli", aliases:[], cat:"haadama"},
+  {name:"Cauliflower", aliases:[], cat:"haadama"},
+  {name:"Corn", aliases:["sweetcorn","corn on the cob"], cat:"haadama"},
+  {name:"Peanuts", aliases:["peanut"], cat:"haadama", note:"A ground legume, so Ha'Adama even though it's often shelved with tree nuts."},
+  {name:"Peanut butter", aliases:[], cat:"haadama"},
+  {name:"Beans", aliases:["kidney beans","chickpeas","hummus"], cat:"haadama"},
+  {name:"Lentils", aliases:["lentil soup"], cat:"haadama"},
+  {name:"Pumpkin", aliases:["squash"], cat:"haadama"},
+  {name:"Pickle", aliases:["pickles","gherkin"], cat:"haadama"},
+
+  // Shehakol — everything else
+  {name:"Mushroom", aliases:["mushrooms"], cat:"shehakol", note:"Fungi don't draw nourishment from the ground the way plants do, so they're Shehakol rather than Ha'Adama — one of the classic exceptions."},
+  {name:"Truffle", aliases:["truffles"], cat:"shehakol"},
+  {name:"Egg", aliases:["eggs","boiled egg","omelette"], cat:"shehakol"},
+  {name:"Chicken", aliases:["turkey","meat"], cat:"shehakol"},
+  {name:"Beef", aliases:["steak","burger"], cat:"shehakol"},
+  {name:"Fish", aliases:["salmon","tuna","sushi fish"], cat:"shehakol"},
+  {name:"Milk", aliases:[], cat:"shehakol"},
+  {name:"Cheese", aliases:[], cat:"shehakol"},
+  {name:"Yogurt", aliases:["yoghurt"], cat:"shehakol"},
+  {name:"Ice cream", aliases:[], cat:"shehakol"},
+  {name:"Honey", aliases:[], cat:"shehakol", note:"A bee product, not a plant, so it's Shehakol even though it's one of the Seven Species when referring to date-honey historically."},
+  {name:"Sugar", aliases:[], cat:"shehakol"},
+  {name:"Chocolate", aliases:[], cat:"shehakol"},
+  {name:"Candy", aliases:["sweets"], cat:"shehakol"},
+  {name:"Popcorn", aliases:[], cat:"shehakol"},
+  {name:"Quinoa", aliases:[], cat:"shehakol", note:"Not one of the five halachic grains, so it doesn't get Mezonot despite being grain-like."},
+  {name:"Tofu", aliases:["soy","soya"], cat:"shehakol"},
+  {name:"Plant milk", aliases:["soy milk","oat milk","almond milk","rice milk"], cat:"shehakol"},
+  {name:"Smoothie", aliases:["smoothies","vegetable juice","beetroot juice"], cat:"shehakol", note:"Common practice is Shehakol for blended fruit drinks; some hold a thick smoothie keeps the fruit's blessing — worth checking your own custom."},
+  {name:"Lamb", aliases:["mutton"], cat:"shehakol"},
+  {name:"Turkey", aliases:[], cat:"shehakol"},
+  {name:"Jam", aliases:["jelly","marmalade"], cat:"shehakol", note:"Smooth jam is Shehakol. Jam with recognisable whole fruit pieces takes the fruit's own blessing."},
+  {name:"Water", aliases:[], cat:"shehakol"},
+  {name:"Soda", aliases:["fizzy drink","coke","soft drink","cola"], cat:"shehakol"},
+  {name:"Coffee", aliases:[], cat:"shehakol"},
+  {name:"Tea", aliases:[], cat:"shehakol"},
+  {name:"Beer", aliases:[], cat:"shehakol"},
+  {name:"Whisky", aliases:["whiskey","vodka","spirits","brandy"], cat:"shehakol"},
+  {name:"Orange juice", aliases:["fruit juice","apple juice"], cat:"shehakol", note:"Juice pressed from fruit is Shehakol, not the fruit's own blessing — grape juice is the one big exception (HaGafen)."},
+  {name:"Salt", aliases:[], cat:"shehakol"},
+  {name:"Mushroom soup", aliases:[], cat:"shehakol"}
+];
+
+/* ---------- Rendering ---------- */
+const resultsEl = document.getElementById('results');
+const input = document.getElementById('searchInput');
+const overlay = document.getElementById('overlay');
+const detailCard = document.getElementById('detailCard');
+
+function computeAfter(food){
+  if(food.after) return food.after;
+  if(food.cat === 'hamotzi') return 'birkatHamazon';
+  if(food.cat === 'mezonot') return 'alHamichya';
+  if(food.cat === 'hagafen') return 'alHagefen';
+  if(food.cat === 'haetz' && food.seven) return 'alHaetz';
+  return 'boreiNefashot';
+}
+
+function matches(food, q){
+  q = q.toLowerCase().trim();
+  if(!q) return false;
+  if(food.name.toLowerCase().includes(q)) return true;
+  return food.aliases.some(a => a.toLowerCase().includes(q));
+}
+
+function renderEmpty(){
+  resultsEl.innerHTML = `
+    <div class="empty-state">
+      <div>Start typing a food above 👆</div>
+      <div class="cat-grid">
+        ${Object.entries(CATEGORIES).map(([key,c]) => `
+          <div class="cat-chip" style="background:${c.color}">
+            <b>${c.label}</b>${categoryHint(key)}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function categoryHint(key){
+  const hints = {
+    hamotzi: "Bread, meal-quantity pizza",
+    mezonot: "Cake, pasta, cereal, crackers",
+    hagafen: "Wine, grape juice",
+    haetz: "Tree fruit &amp; nuts",
+    haadama: "Vegetables, ground fruit",
+    shehakol: "Meat, dairy, eggs, drinks, sweets"
+  };
+  return hints[key] || "";
+}
+
+function renderNoMatch(q){
+  resultsEl.innerHTML = `
+    <div class="empty-state">
+      <div>No exact match for “${q}”.</div>
+      <div style="margin-top:6px;font-size:0.85rem;">
+        Try a simpler word (e.g. “apple” instead of “apple pie”), or check the six categories below —
+        many foods not listed here still fit clearly into one of them.
+      </div>
+      <div class="cat-grid">
+        ${Object.entries(CATEGORIES).map(([key,c]) => `
+          <div class="cat-chip" style="background:${c.color}">
+            <b>${c.label}</b>${categoryHint(key)}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderResults(list){
+  resultsEl.innerHTML = list.map((food, i) => {
+    const cat = CATEGORIES[food.cat];
+    return `
+      <div class="food-row" data-idx="${food._idx}">
+        <div class="name">${food.name}</div>
+        <div class="badge" style="background:${cat.color}">${cat.label}</div>
+      </div>`;
+  }).join('');
+
+  resultsEl.querySelectorAll('.food-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = row.getAttribute('data-idx');
+      openDetail(FOODS[idx]);
+    });
+  });
+}
+
+function renderAfterBody(after){
+  if(after.sections){
+    const intro = after.intro ? `<div class="bracha-english" style="margin-bottom:12px;">${after.intro}</div>` : '';
+    const blocks = after.sections.map(s => `
+      <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);margin:14px 0 6px;">${s.title}</div>
+      <div class="bracha-block">
+        <div class="bracha-hebrew">${s.hebrew}</div>
+        <div class="bracha-translit">${s.translit}</div>
+        <div class="bracha-english">${s.english}</div>
+      </div>`).join('');
+    const note = after.note ? `<div class="note-box" style="margin-top:14px;"><b>Note:</b> ${after.note}</div>` : '';
+    return intro + blocks + note;
+  }
+  return `
+    <div class="bracha-block">
+      <div class="bracha-hebrew">${after.hebrew}</div>
+      <div class="bracha-translit">${after.translit}</div>
+      <div class="bracha-english">${after.english}</div>
+    </div>`;
+}
+
+function openDetail(food){
+  const cat = CATEGORIES[food.cat];
+  const afterKey = computeAfter(food);
+  const after = AFTER[afterKey];
+
+  detailCard.innerHTML = `
+    <button class="close-btn" id="closeBtn">&times;</button>
+    <h2>${food.name}</h2>
+    <div class="subtitle">Before eating, say <b style="color:${cat.color}">${cat.label}</b></div>
+
+    <div class="bracha-block">
+      <div class="bracha-hebrew">${cat.hebrew}</div>
+      <div class="bracha-translit">${cat.translit}</div>
+      <div class="bracha-english">${cat.english}</div>
+    </div>
+
+    ${food.note ? `<div class="note-box"><b>Note:</b> ${food.note}</div>` : ''}
+
+    <div class="section-label">After eating — ${after.label}</div>
+    ${renderAfterBody(after)}
+    <div class="note-box">
+      After-blessings generally only apply once you've eaten a minimum amount (roughly a
+      <i>kezayit</i>, about the size of an olive, or a <i>revi'it</i> of liquid) within a
+      few minutes — exact measures are debated, so ask your rabbi if it matters for you.
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('closeBtn').addEventListener('click', closeDetail);
+}
+
+function closeDetail(){
+  overlay.classList.remove('show');
+}
+overlay.addEventListener('click', e => { if(e.target === overlay) closeDetail(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDetail(); });
+
+FOODS.forEach((f,i) => f._idx = i);
+
+input.addEventListener('input', () => {
+  const q = input.value;
+  if(!q.trim()){ renderEmpty(); return; }
+  const matched = FOODS.filter(f => matches(f, q));
+  if(matched.length === 0){ renderNoMatch(q); return; }
+  matched.sort((a,b) => a.name.localeCompare(b.name));
+  renderResults(matched);
+});
+
+renderEmpty();
+</script>
+</body>
+</html>
